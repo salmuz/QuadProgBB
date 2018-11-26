@@ -355,7 +355,7 @@ SIGSIG = -1; % Signal that we want default sig in aug Lag algorithm
 %% ------------------------------------------------------------------
 
 if options.use_quadprog
-  quadopts = optimset('LargeScale','off','Display','off','Algorithm','active-set');
+  quadopts = optimset('LargeScale','off','Display','off','Algorithm','interior-point-convex');
   [xx,gUB] = quadprog(H,f,[],[],A,b,L_save,U_save,[],quadopts);
 else
   xx = [];
@@ -593,27 +593,32 @@ while length(LBLB) > 0
       end
 
       if options.use_quadprog
-        quadopts = optimset('LargeScale','off','Display','off','Algorithm','active-set');
+        quadopts = optimset('LargeScale','off','Display','off','Algorithm','interior-point-convex');
         [tmpx,tmpval] = quadprog(H,f,[],[],A,b,L_save,U_save,x0,quadopts);
       else
         tmpx = [];
         tmpval = Inf;
       end
+      
       if feasible(tmpx,A,b,L_save,U_save,options.tol) & tmpval < gUB
         gUB = tmpval;
         xx = tmpx;
       end
-
+      
       x0 = Z(2:bign+1,1)/Z(1,1);
+      % special case when x0=(NaN,...NaN)
+      if(any(isnan(x0)))
+          x0(isnan(x0)) = 0;
+      end
       x0 = project(x0,local_A,local_b,L,U); %% In CPLEX we trust! 
       x0val = 0.5*x0'*H*x0 + f'*x0;
       if feasible(x0,A,b,L_save,U_save,options.tol) & x0val < gUB % x0 is better than what quadprog found
         gUB = x0val;
         xx = x0;
       end
-
+      
       if options.use_quadprog
-        quadopts = optimset('LargeScale','off','Display','off','Algorithm','active-set');
+        quadopts = optimset('LargeScale','off','Display','off','Algorithm','interior-point-convex');
         [tmpx,tmpval] = quadprog(H,f,[],[],A,b,L_save,U_save,x0,quadopts);
       else
         tmpx = [];
@@ -1688,8 +1693,7 @@ function x = project(x0,A,b,L,U)
 %                           A, b, [1:m], [], ...
 %                           L, U, [], ...
 %                           [], []);
-
-% quadopts = optimset('LargeScale','off','Display','off');
+% quadopts = optimset('LargeScale','off','Display','off', 'Algorithm','interior-point-convex');
 % x = quadprog(2*eye(n),-2*x0,[],[],A,b,L,U,[],quadopts);
 cplexopts = cplexoptimset('Display','off');
 x = cplexqp(2*eye(n),-2*x0,[],[],A,b,L,U,[],cplexopts);
