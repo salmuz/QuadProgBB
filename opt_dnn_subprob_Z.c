@@ -173,6 +173,11 @@ void mexFunction(int nlhs, mxArray *plhs[],
   for(i = 0; i < k*k; i++)
     TempMatrix_kk[i] = smallMAT[i];
 
+  // Not optimal way to return eigvals and eigvecs null from matrix null
+  // @salmuz if VU == 0 and VL == 0 and matrix nulll == all value 0
+  // @salmuz crash problem in macbook@64bits
+  if(VU < 1e-10) VU = 1.0e10;
+  
   /* Do spectral decomposition. */
 
   dsyevr_(&JOBZ, &RANGE, &UPLO, &k, TempMatrix_kk, &k, &VL, &VU, &IL,
